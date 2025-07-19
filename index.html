@@ -20,10 +20,13 @@
         }
 
         .card-scene {
-            width: min(320px, 90vw);
-            height: min(420px, 60vh);
-            margin: 20px auto;
+            width: min(340px, 85vw);
+            height: min(480px, 65vh);
+            margin: 0 auto;
             perspective: 1000px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .card-3d {
@@ -64,7 +67,7 @@
         }
 
         .card-back .card-content {
-            transform: scaleX(-1); /* Fix mirrored text on mobile */
+            transform: rotateY(180deg); /* Double flip to fix mirroring completely */
         }
 
         .card-content {
@@ -285,21 +288,39 @@
             align-items: center;
             justify-content: center;
             min-height: 100vh;
+            min-height: 100dvh; /* Dynamic viewport height for mobile */
             width: 100%;
+            padding: 16px;
+            box-sizing: border-box;
         }
 
         .mobile-container {
             width: 100%;
-            max-width: 100vw;
-            padding: 0 16px;
+            max-width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+        }
+
+        .study-layout {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            min-height: 100dvh;
+            width: 100%;
+            padding: 16px;
             box-sizing: border-box;
         }
 
         @media (max-width: 480px) {
             .card-scene {
-                width: calc(100vw - 32px);
-                height: 55vh;
-                margin: 16px auto;
+                width: min(300px, 90vw);
+                height: min(400px, 55vh);
+                margin: 0 auto;
             }
             
             .card-content {
@@ -326,15 +347,17 @@
                 font-size: 0.9rem;
             }
 
-            /* Mobile page centering */
-            .min-h-screen {
-                min-height: 100vh;
-                min-height: -webkit-fill-available;
-            }
-
+            /* Enhanced mobile centering */
             .mobile-center {
                 min-height: 100vh;
-                min-height: -webkit-fill-available;
+                min-height: 100dvh;
+                padding: 12px;
+            }
+
+            .study-layout {
+                min-height: 100vh;
+                min-height: 100dvh;
+                padding: 12px;
             }
         }
 
@@ -684,52 +707,88 @@
 
             const pronounceText = (text, forceLanguage = null) => {
                 if ('speechSynthesis' in window && text && text.trim()) {
+                    // Cancel any ongoing speech
                     window.speechSynthesis.cancel();
                     
-                    const lines = text.split('\n');
-                    const textToPronounce = lines[0];
-                    
-                    const utterance = new SpeechSynthesisUtterance(textToPronounce);
-                    
-                    const detectedLang = forceLanguage || detectLanguage(textToPronounce);
-                    
-                    if (detectedLang === 'zh-CN') {
-                        utterance.rate = 0.6;
-                        utterance.pitch = 1.0;
-                        utterance.volume = 1.0;
-                        utterance.lang = 'zh-CN';
-                    } else if (detectedLang === 'th-TH') {
-                        utterance.rate = 0.7;
-                        utterance.pitch = 1.0;
-                        utterance.volume = 0.9;
-                        utterance.lang = 'th-TH';
-                    } else {
-                        utterance.rate = 0.8;
-                        utterance.pitch = 1.0;
-                        utterance.volume = 0.9;
-                        utterance.lang = 'en-US';
-                    }
-                    
-                    // Enhanced error handling for mobile
-                    utterance.onerror = (event) => {
-                        console.log('Speech synthesis error:', event.error);
-                    };
-                    
-                    // Try to get available voices for better pronunciation
-                    const voices = window.speechSynthesis.getVoices();
-                    if (voices.length > 0) {
+                    // Wait a bit for cancel to complete
+                    setTimeout(() => {
+                        const lines = text.split('\n');
+                        const textToPronounce = lines[0].trim();
+                        
+                        const utterance = new SpeechSynthesisUtterance(textToPronounce);
+                        
+                        const detectedLang = forceLanguage || detectLanguage(textToPronounce);
+                        
+                        // Enhanced pronunciation settings
                         if (detectedLang === 'zh-CN') {
+                            utterance.rate = 0.5;  // Slower for clarity
+                            utterance.pitch = 1.0;
+                            utterance.volume = 1.0;
+                            utterance.lang = 'zh-CN';
+                            
+                            // Try to find a better Chinese voice
+                            const voices = window.speechSynthesis.getVoices();
                             const chineseVoice = voices.find(voice => 
-                                voice.lang.includes('zh') || voice.lang.includes('cmn')
+                                voice.lang.includes('zh-CN') || 
+                                voice.lang.includes('zh-TW') || 
+                                voice.lang.includes('cmn') ||
+                                voice.name.toLowerCase().includes('chinese') ||
+                                voice.name.toLowerCase().includes('mandarin')
                             );
-                            if (chineseVoice) utterance.voice = chineseVoice;
+                            if (chineseVoice) {
+                                utterance.voice = chineseVoice;
+                                console.log('Using Chinese voice:', chineseVoice.name);
+                            }
                         } else if (detectedLang === 'th-TH') {
-                            const thaiVoice = voices.find(voice => voice.lang.includes('th'));
-                            if (thaiVoice) utterance.voice = thaiVoice;
+                            utterance.rate = 0.6;
+                            utterance.pitch = 1.0;
+                            utterance.volume = 0.9;
+                            utterance.lang = 'th-TH';
+                            
+                            // Try to find a Thai voice
+                            const voices = window.speechSynthesis.getVoices();
+                            const thaiVoice = voices.find(voice => 
+                                voice.lang.includes('th') || 
+                                voice.name.toLowerCase().includes('thai')
+                            );
+                            if (thaiVoice) {
+                                utterance.voice = thaiVoice;
+                                console.log('Using Thai voice:', thaiVoice.name);
+                            }
+                        } else {
+                            utterance.rate = 0.7;
+                            utterance.pitch = 1.0;
+                            utterance.volume = 0.9;
+                            utterance.lang = 'en-US';
+                            
+                            // Try to find a clear English voice
+                            const voices = window.speechSynthesis.getVoices();
+                            const englishVoice = voices.find(voice => 
+                                voice.lang.includes('en-US') || 
+                                voice.lang.includes('en-GB')
+                            );
+                            if (englishVoice) {
+                                utterance.voice = englishVoice;
+                            }
                         }
-                    }
-                    
-                    window.speechSynthesis.speak(utterance);
+                        
+                        // Enhanced error handling
+                        utterance.onerror = (event) => {
+                            console.log('Speech synthesis error:', event.error);
+                            // Fallback: try without specific voice
+                            if (utterance.voice) {
+                                utterance.voice = null;
+                                window.speechSynthesis.speak(utterance);
+                            }
+                        };
+                        
+                        utterance.onend = () => {
+                            console.log('Speech synthesis completed');
+                        };
+                        
+                        // Speak the text
+                        window.speechSynthesis.speak(utterance);
+                    }, 100);
                 }
             };
 
@@ -965,7 +1024,7 @@
                 }
                 
                 return (
-                    <div className="min-h-screen animated-bg p-8 relative">
+                    <div className="min-h-screen animated-bg relative">
                         <div className="floating-elements">
                             <div className="floating-shape"></div>
                             <div className="floating-shape"></div>
@@ -987,138 +1046,123 @@
                             </button>
                         </div>
 
-                        <div className="flex items-center justify-center min-h-screen">
-                            <div className="w-full max-w-2xl relative z-10">
-                                <div className="card-scene">
+                        <div className="study-layout relative z-10">
+                            <div className="card-scene">
+                                <div 
+                                    className={`card-3d ${flipped ? 'flipped' : ''} ${animating ? 'animating' : ''}`} 
+                                    onClick={handleFlip}
+                                    onTouchStart={handleTouchStart}
+                                    onTouchEnd={handleTouchEnd}
+                                >
                                     <div 
-                                        className={`card-3d ${flipped ? 'flipped' : ''} ${animating ? 'animating' : ''}`} 
-                                        onClick={handleFlip}
-                                        onTouchStart={handleTouchStart}
-                                        onTouchEnd={handleTouchEnd}
+                                        className="card-face card-front"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            const lines = currentCard.front.split('\n');
+                                            if (lines.length >= 2) {
+                                                const chineseChar = lines[0];
+                                                pronounceText(chineseChar, 'zh-CN');
+                                            }
+                                            handleFlip();
+                                        }}
                                     >
-                                        <div 
-                                            className="card-face card-front"
-                                            onMouseEnter={() => {
-                                                const lines = currentCard.front.split('\n');
-                                                if (lines.length >= 2) {
-                                                    const chineseChar = lines[0];
-                                                    pronounceText(chineseChar, 'zh-CN');
-                                                }
-                                            }}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                const lines = currentCard.front.split('\n');
-                                                if (lines.length >= 2) {
-                                                    const chineseChar = lines[0];
-                                                    pronounceText(chineseChar, 'zh-CN');
-                                                }
-                                                handleFlip();
-                                            }}
-                                        >
-                                            <div className="card-content">
-                                                <div className="text-center">
-                                                    {currentCard.front.split('\n').map((line, index) => (
-                                                        <div key={index} className={index === 0 ? "chinese-character" : "pinyin"}>
-                                                            {line}
-                                                        </div>
-                                                    ))}
-                                                </div>
+                                        <div className="card-content">
+                                            <div className="text-center">
+                                                {currentCard.front.split('\n').map((line, index) => (
+                                                    <div key={index} className={index === 0 ? "chinese-character" : "pinyin"}>
+                                                        {line}
+                                                    </div>
+                                                ))}
                                             </div>
                                         </div>
+                                    </div>
 
-                                        <div 
-                                            className="card-face card-back"
-                                            onMouseEnter={() => {
-                                                const lines = currentCard.back.split('\n');
-                                                if (lines.length >= 1) {
-                                                    pronounceText(lines[0], 'en-US');
-                                                }
-                                            }}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                const lines = currentCard.back.split('\n');
-                                                if (lines.length >= 1) {
-                                                    pronounceText(lines[0], 'en-US');
-                                                }
-                                                handleFlip();
-                                            }}
-                                        >
-                                            <div className="card-content">
-                                                <div className="translation-content">
-                                                    <div className="emoji-display">{currentCard.emoji}</div>
-                                                    {currentCard.back.split('\n').map((line, index) => {
-                                                        if (index === 0) {
-                                                            return <div key={index} className="english-translation">{line}</div>;
-                                                        } else if (index === 1) {
-                                                            return <div key={index} className="thai-translation">{line}</div>;
-                                                        }
-                                                        return null;
-                                                    })}
-                                                </div>
+                                    <div 
+                                        className="card-face card-back"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            const lines = currentCard.back.split('\n');
+                                            if (lines.length >= 1) {
+                                                pronounceText(lines[0], 'en-US');
+                                            }
+                                            handleFlip();
+                                        }}
+                                    >
+                                        <div className="card-content">
+                                            <div className="translation-content">
+                                                <div className="emoji-display">{currentCard.emoji}</div>
+                                                {currentCard.back.split('\n').map((line, index) => {
+                                                    if (index === 0) {
+                                                        return <div key={index} className="english-translation">{line}</div>;
+                                                    } else if (index === 1) {
+                                                        return <div key={index} className="thai-translation">{line}</div>;
+                                                    }
+                                                    return null;
+                                                })}
                                             </div>
                                         </div>
                                     </div>
                                 </div>
+                            </div>
 
-                                <div className="flex items-center justify-center mt-6 gap-3">
-                                    <button
-                                        onClick={handlePrevious}
-                                        disabled={currentIndex === 0}
-                                        className={`p-3 rounded-full transition-all backdrop-blur-sm mobile-button ${
-                                            currentIndex === 0 
-                                                ? 'bg-white/10 text-white/50 cursor-not-allowed' 
-                                                : 'bg-white/20 text-white hover:bg-white/30 active:scale-95'
-                                        }`}
-                                    >
-                                        <ChevronLeft size={20} />
-                                    </button>
-                                    
-                                    <span className="mx-4 text-white text-lg font-light min-w-[80px] text-center">
-                                        {currentIndex + 1} / {flashcards.length}
-                                    </span>
-
-                                    <button
-                                        onClick={handleCollect}
-                                        disabled={isCollected}
-                                        className={`p-3 rounded-full transition-all backdrop-blur-sm mobile-button ${
-                                            isCollected
-                                                ? 'bg-red-500/50 text-white cursor-not-allowed' 
-                                                : 'bg-white/20 text-white hover:bg-white/30 hover:bg-red-500/30 active:scale-95'
-                                        }`}
-                                        title={isCollected ? 'Already collected' : 'Add to collection'}
-                                    >
-                                        <Heart size={20} fill={isCollected ? 'currentColor' : 'none'} />
-                                    </button>
-                                    
-                                    <button
-                                        onClick={handleNext}
-                                        disabled={currentIndex === flashcards.length - 1}
-                                        className={`p-3 rounded-full transition-all backdrop-blur-sm mobile-button ${
-                                            currentIndex === flashcards.length - 1 
-                                                ? 'bg-white/10 text-white/50 cursor-not-allowed' 
-                                                : 'bg-white/20 text-white hover:bg-white/30 active:scale-95'
-                                        }`}
-                                    >
-                                        <ChevronRight size={20} />
-                                    </button>
-                                </div>
+                            <div className="flex items-center justify-center mt-6 gap-3">
+                                <button
+                                    onClick={handlePrevious}
+                                    disabled={currentIndex === 0}
+                                    className={`p-3 rounded-full transition-all backdrop-blur-sm mobile-button ${
+                                        currentIndex === 0 
+                                            ? 'bg-white/10 text-white/50 cursor-not-allowed' 
+                                            : 'bg-white/20 text-white hover:bg-white/30 active:scale-95'
+                                    }`}
+                                >
+                                    <ChevronLeft size={20} />
+                                </button>
                                 
-                                <div className="text-center mt-6 px-4">
-                                    <p className="text-white/70 text-sm mb-4">
-                                        <span className="hidden sm:inline">{t('flipInstruction')}</span>
-                                        <span className="sm:hidden">Tap to flip • Swipe to navigate</span>
-                                    </p>
-                                    <button
-                                        onClick={() => {
-                                            setMode('create');
-                                            setTopic('');
-                                            setFlashcards([]);
-                                        }}
-                                        className="text-white/70 hover:text-white transition-colors underline mobile-button"
-                                    >
-                                        {t('createNewFlashcardsLink')}
-                                    </button>
-                                </div>
+                                <span className="mx-4 text-white text-lg font-light min-w-[80px] text-center">
+                                    {currentIndex + 1} / {flashcards.length}
+                                </span>
+
+                                <button
+                                    onClick={handleCollect}
+                                    disabled={isCollected}
+                                    className={`p-3 rounded-full transition-all backdrop-blur-sm mobile-button ${
+                                        isCollected
+                                            ? 'bg-red-500/50 text-white cursor-not-allowed' 
+                                            : 'bg-white/20 text-white hover:bg-white/30 hover:bg-red-500/30 active:scale-95'
+                                    }`}
+                                    title={isCollected ? 'Already collected' : 'Add to collection'}
+                                >
+                                    <Heart size={20} fill={isCollected ? 'currentColor' : 'none'} />
+                                </button>
+                                
+                                <button
+                                    onClick={handleNext}
+                                    disabled={currentIndex === flashcards.length - 1}
+                                    className={`p-3 rounded-full transition-all backdrop-blur-sm mobile-button ${
+                                        currentIndex === flashcards.length - 1 
+                                            ? 'bg-white/10 text-white/50 cursor-not-allowed' 
+                                            : 'bg-white/20 text-white hover:bg-white/30 active:scale-95'
+                                    }`}
+                                >
+                                    <ChevronRight size={20} />
+                                </button>
+                            </div>
+                            
+                            <div className="text-center mt-6 px-4">
+                                <p className="text-white/70 text-sm mb-4">
+                                    <span className="hidden sm:inline">{t('flipInstruction')}</span>
+                                    <span className="sm:hidden">Tap to flip • Swipe to navigate</span>
+                                </p>
+                                <button
+                                    onClick={() => {
+                                        setMode('create');
+                                        setTopic('');
+                                        setFlashcards([]);
+                                    }}
+                                    className="text-white/70 hover:text-white transition-colors underline mobile-button"
+                                >
+                                    {t('createNewFlashcardsLink')}
+                                </button>
                             </div>
                         </div>
                     </div>
