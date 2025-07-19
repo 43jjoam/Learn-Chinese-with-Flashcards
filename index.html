@@ -64,7 +64,10 @@
 
         .card-back {
             transform: rotateY(180deg);
-    
+        }
+
+        .card-back .card-content {
+            transform: rotateY(180deg); /* Double flip to fix mirroring completely */
         }
 
         .card-content {
@@ -363,7 +366,7 @@
             const [english, thai] = type === 'back' ? content.split('\n') : [null, null];
 
             return (
-                <div className={card-face ${type === 'back' ? 'card-back' : ''}} onClick={() => pronounceText(char || english)}>
+                <div className={`card-face ${type === 'back' ? 'card-back' : ''}`} onClick={() => pronounceText(char || english)}>
                     <div className="card-content">
                         {type === 'front' ? (
                             <>
@@ -466,9 +469,9 @@
                     <ParallaxBackground />
                     <div className="w-full flex flex-col items-center justify-center relative">
                         <div className="card-scene" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-                            <div className={card-3d ${flipped ? 'flipped' : ''} ${animating ? 'animating' : ''}}>
+                            <div className={`card-3d ${flipped ? 'flipped' : ''} ${animating ? 'animating' : ''}`}>
                                 <CardFace content={currentCard.front} type="front" />
-                                <CardFace content={${currentCard.back.split('\n')[0]}\n${currentCard.back.split('\n')[1]}} type="back" />
+                                <CardFace content={`${currentCard.back.split('\n')[0]}\n${currentCard.back.split('\n')[1]}`} type="back" />
                             </div>
                         </div>
 
@@ -557,7 +560,7 @@
                      <FloatingShapes/>
                     <div className="w-full max-w-md mx-auto text-center px-4">
                         <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">{t('flashcardsCode')}</h1>
-                        <p className="text-white/80 mb-8">Unlock your Chinese fluency here.</p>
+                        <p className="text-white/80 mb-8">Enter "LearnChinesewithHelen11295" or "pinyin" to start.</p>
                         
                         <div className="relative">
                             <input
@@ -573,7 +576,7 @@
                         <div ref={sliderRef} className="slide-container relative w-full h-14 bg-white/20 rounded-full mt-6 flex items-center p-1" >
                             <div
                                 className="absolute h-12 w-14 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full shadow-lg flex items-center justify-center cursor-pointer"
-                                style={{ transform: translateX(${slidePosition}px), transition: isDragging ? 'none' : 'transform 0.2s ease' }}
+                                style={{ transform: `translateX(${slidePosition}px)`, transition: isDragging ? 'none' : 'transform 0.2s ease' }}
                                 onMouseDown={(e) => handleInteractionStart(e.clientX)}
                                 onTouchStart={(e) => handleInteractionStart(e.touches[0].clientX)}
                             >
