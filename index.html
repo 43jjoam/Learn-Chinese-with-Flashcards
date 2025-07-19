@@ -1,4 +1,68 @@
-<!DOCTYPE html>
+const FlashcardApp = () => {
+            const [mode, setMode] = useState('create'); // 'create', 'loading', 'study', 'decks'
+            const [flashcards, setFlashcards] = useState([]);
+            const [showDecks, setShowDecks] = useState(false);
+
+            // Load ResponsiveVoice for better pronunciation
+            useEffect(() => {
+                const script = document.createElement('script');
+                script.src = 'https://code.responsivevoice.org/responsivevoice.js?key=YOUR_KEY'; // Replace with actual key or use free version
+                script.async = true;
+                document.head.appendChild(script);
+                
+                return () => {
+                    if (document.head.contains(script)) {
+                        document.head.removeChild(script);
+                    }
+                };
+            }, []);
+
+            const handleTopicSubmit = (code) => {
+                setMode('loading');
+                setTimeout(() => {
+                    const deck = AVAILABLE_DECKS.find(d => d.id === code);
+                    if (deck) {
+                        setFlashcards(deck.cards);
+                        setMode('study');
+                    } else {
+                        setFlashcards([{ front: "Invalid Code", back: "Please try another code.", emoji: "🤷" }]);
+                        setMode('study');
+                    }
+                }, 1500);
+            };
+
+            const handleDeckSelect = (deck) => {
+                setShowDecks(false);
+                setFlashcards(deck.cards);
+                setMode('study');
+            };
+            
+            const handleShowDecks = () => {
+                setShowDecks(true);
+            };
+            
+            const handleExitStudy = () => {
+                setMode('create');
+                setFlashcards([]);
+            };
+
+            if (mode === 'loading') return <LoadingScreen />;
+            if (mode === 'study') return (
+                <>
+                    <StudyScreen 
+                        flashcards={flashcards} 
+                        onExit={handleExitStudy} 
+                        onShowDecks={handleShowDecks}
+                    />
+                    <DecksModal 
+                        isOpen={showDecks}
+                        onClose={() => setShowDecks(false)}
+                        onDeckSelect={handleDeckSelect}
+                    />
+                </>
+            );
+            return <CreateScreen onTopicSubmit={handleTopicSubmit} />;
+                <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -64,10 +128,6 @@
 
         .card-back {
             transform: rotateY(180deg);
-        }
-
-        .card-back .card-content {
-            transform: rotateY(180deg); /* Double flip to fix mirroring completely */
         }
 
         .card-content {
@@ -224,14 +284,173 @@
             padding: 16px;
             box-sizing: border-box;
         }
+
+        .study-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            box-sizing: border-box;
+        }
+
+        .top-controls {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            z-index: 10;
+            display: flex;
+            gap: 8px;
+        }
+
+        .mini-card {
+            width: calc(50% - 8px);
+            aspect-ratio: 3/4;
+            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.85) 100%);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 8px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .mini-card:hover {
+            transform: scale(1.02);
+        }
+
+        .mini-card .chinese-text {
+            font-size: 1.2rem;
+            font-weight: 300;
+            color: #1f2937;
+            margin-bottom: 4px;
+        }
+
+        .mini-card .english-text {
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+
+        .deck-card {
+            width: calc(50% - 8px);
+            aspect-ratio: 3/4;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 16px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .deck-card:hover {
+            transform: scale(1.02);
+        }
+
+        .deck-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .deck-image {
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+
+        .deck-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .deck-count {
+            font-size: 0.7rem;
+            opacity: 0.8;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .modal-header {
+            padding: 20px 20px 16px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 16px 20px 20px;
+            max-height: calc(80vh - 120px);
+            overflow-y: auto;
+        }
+
+        .cards-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6b7280;
+        }
         
         @media (max-width: 480px) {
-            .card-scene {
-                width: min(300px, 90vw);
-                height: min(400px, 55vh);
+            .top-controls {
+                top: 12px;
+                right: 12px;
+                gap: 6px;
             }
-            .mobile-center {
-                padding: 12px;
+            
+            .modal-content {
+                max-width: calc(100vw - 24px);
             }
         }
     </style>
@@ -250,7 +469,7 @@
                 "pasteCodePlaceholder": "paste or type your unique code here...",
                 "generatingTitle": "Loading your flashcard set...",
                 "generatingSubtitle": "Please wait while we prepare your cards...",
-                "createNewFlashcardsLink": "Enter new code",
+                "createNewFlashcardsLink": "New code",
                 "collection": "Collection",
                 "backToStudy": "Back to Study",
                 "noCollectedCards": "No cards collected yet"
@@ -265,9 +484,54 @@
             { front: "ang", back: "ang\nFinal compound: 'ahng' sound\nเสียงสระผสม: 'อาง'", emoji: "🗣️" }, { front: "ing", back: "ing\nFinal compound: 'eeng' sound\nเสียงสระผสม: 'อิง'", emoji: "🗣️" }, { front: "en", back: "en\nFinal compound: 'uhn' sound\nเสียงสระผสม: 'เอิน'", emoji: "🗣️" }, { front: "ai", back: "ai\nFinal compound: 'eye' sound\nเสียงสระผสม: 'ไอ'", emoji: "🗣️" }, { front: "ao", back: "ao\nFinal compound: 'aow' sound\nเสียงสระผสม: 'เอา'", emoji: "🗣️" }
         ];
 
+        const AVAILABLE_DECKS = [
+            {
+                id: 'LearnChinesewithHelen11295',
+                name: 'Basic Chinese Vocabulary',
+                image: '📚',
+                cardCount: 95,
+                cards: CHINESE_VOCABULARY
+            },
+            {
+                id: 'pinyin',
+                name: 'Pinyin Pronunciation',
+                image: '🗣️',
+                cardCount: 5,
+                cards: PINYIN_CARDS
+            },
+            {
+                id: 'hsk1',
+                name: 'HSK Level 1',
+                image: '🎯',
+                cardCount: 150,
+                cards: [{ front: "Coming Soon", back: "This deck will be available soon!", emoji: "🔜" }]
+            },
+            {
+                id: 'hsk2',
+                name: 'HSK Level 2',
+                image: '🚀',
+                cardCount: 300,
+                cards: [{ front: "Coming Soon", back: "This deck will be available soon!", emoji: "🔜" }]
+            },
+            {
+                id: 'business',
+                name: 'Business Chinese',
+                image: '💼',
+                cardCount: 200,
+                cards: [{ front: "Coming Soon", back: "This deck will be available soon!", emoji: "🔜" }]
+            },
+            {
+                id: 'travel',
+                name: 'Travel Chinese',
+                image: '✈️',
+                cardCount: 120,
+                cards: [{ front: "Coming Soon", back: "This deck will be available soon!", emoji: "🔜" }]
+            }
+        ];
+
         // --- UTILITY HOOKS & FUNCTIONS ---
 
-        const useSpeech = () => {
+        const useAdvancedSpeech = () => {
             const [voices, setVoices] = useState([]);
 
             useEffect(() => {
@@ -293,37 +557,90 @@
                 return 'en-US';
             };
 
-            const pronounceText = useCallback((text) => {
-                if (!text || !text.trim() || !window.speechSynthesis || voices.length === 0) return;
+            const pronounceText = useCallback(async (text) => {
+                if (!text || !text.trim()) return;
 
-                window.speechSynthesis.cancel();
+                const textToPronounce = text.split('\n')[0].trim();
+                const lang = detectLanguage(textToPronounce);
 
-                setTimeout(() => {
-                    const textToPronounce = text.split('\n')[0].trim();
+                // Try ResponsiveVoice first (better quality)
+                if (window.responsiveVoice && window.responsiveVoice.speak) {
+                    try {
+                        let voiceName = 'US English Female';
+                        let rate = 0.8;
+                        let pitch = 1.0;
+
+                        if (lang === 'zh-CN') {
+                            voiceName = 'Chinese Female';
+                            rate = 0.6;
+                            pitch = 1.0;
+                        } else if (lang === 'th-TH') {
+                            voiceName = 'Thai Female';
+                            rate = 0.7;
+                        }
+
+                        window.responsiveVoice.speak(textToPronounce, voiceName, {
+                            rate: rate,
+                            pitch: pitch,
+                            volume: 1
+                        });
+                        return;
+                    } catch (error) {
+                        console.log('ResponsiveVoice not available, falling back to SpeechSynthesis');
+                    }
+                }
+
+                // Fallback to enhanced SpeechSynthesis
+                if (window.speechSynthesis && voices.length > 0) {
+                    window.speechSynthesis.cancel();
+
+                    await new Promise(resolve => setTimeout(resolve, 100));
+
                     const utterance = new SpeechSynthesisUtterance(textToPronounce);
-                    const lang = detectLanguage(textToPronounce);
-
                     utterance.lang = lang;
-                    let voice;
 
+                    let voice;
                     if (lang === 'zh-CN') {
-                        voice = voices.find(v => v.lang.includes('zh-CN') || v.lang.includes('zh-TW') || v.name.toLowerCase().includes('mandarin')) || voices.find(v => v.lang.startsWith('zh'));
+                        // Look for high-quality Chinese voices
+                        voice = voices.find(v => 
+                            v.lang.includes('zh-CN') || 
+                            v.lang.includes('zh-TW') || 
+                            v.name.toLowerCase().includes('tingting') ||
+                            v.name.toLowerCase().includes('yaoyao') ||
+                            v.name.toLowerCase().includes('xiaomai') ||
+                            v.name.toLowerCase().includes('mandarin')
+                        ) || voices.find(v => v.lang.startsWith('zh'));
+                        
                         utterance.rate = 0.6;
-                        utterance.pitch = 1.0;
+                        utterance.pitch = 1.1;
+                        utterance.volume = 1.0;
                     } else if (lang === 'th-TH') {
-                        voice = voices.find(v => v.lang.includes('th-TH')) || voices.find(v => v.lang.startsWith('th'));
+                        voice = voices.find(v => 
+                            v.lang.includes('th-TH') || 
+                            v.name.toLowerCase().includes('kanya')
+                        ) || voices.find(v => v.lang.startsWith('th'));
+                        
                         utterance.rate = 0.7;
+                        utterance.pitch = 1.0;
+                        utterance.volume = 1.0;
                     } else {
-                        voice = voices.find(v => v.lang.includes('en-US')) || voices.find(v => v.lang.startsWith('en'));
+                        voice = voices.find(v => 
+                            v.lang.includes('en-US') && 
+                            v.name.toLowerCase().includes('female')
+                        ) || voices.find(v => v.lang.includes('en-US')) || voices.find(v => v.lang.startsWith('en'));
+                        
                         utterance.rate = 0.8;
+                        utterance.pitch = 1.0;
+                        utterance.volume = 1.0;
                     }
                     
                     utterance.voice = voice || null;
                     
                     utterance.onerror = (e) => console.error('Speech synthesis error:', e.error);
+                    utterance.onend = () => console.log('Speech finished');
                     
                     window.speechSynthesis.speak(utterance);
-                }, 100); // Small delay for cancel to work reliably
+                }
             }, [voices]);
 
             return pronounceText;
@@ -339,6 +656,10 @@
                 chevronRight: <polyline points="9,18 15,12 9,6"></polyline>,
                 heart: <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>,
                 bookOpen: <><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></>,
+                volume2: <><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></>,
+                x: <><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></>,
+                grid: <><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></>,
+                externalLink: <><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15,3 21,3 21,9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></>,
             };
             return (
                 <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -353,30 +674,127 @@
             </div>
         );
 
-        const ParallaxBackground = () => (
-            <>
-                <div className="parallax-layer parallax-1"></div>
-                <div className="parallax-layer parallax-2"></div>
-            </>
+        const Modal = ({ isOpen, onClose, title, children }) => {
+            if (!isOpen) return null;
+
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+                            <button 
+                                onClick={onClose}
+                                className="mobile-button text-gray-500 hover:text-gray-700"
+                            >
+                                <Icon name="x" size={20} />
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            {children}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const LikedCardsModal = ({ isOpen, onClose, likedCards, flashcards, onCardClick }) => (
+            <Modal isOpen={isOpen} onClose={onClose} title="Liked Cards">
+                {likedCards.length === 0 ? (
+                    <div className="empty-state">
+                        <div className="text-4xl mb-4">💔</div>
+                        <p>No cards liked yet!</p>
+                        <p className="text-sm mt-2">Tap the heart icon while studying to save your favorite cards.</p>
+                    </div>
+                ) : (
+                    <div className="cards-grid">
+                        {likedCards.map((cardIndex) => {
+                            const card = flashcards[cardIndex];
+                            if (!card) return null;
+                            const [char] = card.front.split('\n');
+                            const [english] = card.back.split('\n');
+                            return (
+                                <div 
+                                    key={cardIndex} 
+                                    className="mini-card"
+                                    onClick={() => onCardClick(cardIndex)}
+                                >
+                                    <div className="chinese-text">{char}</div>
+                                    <div className="english-text">{english}</div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </Modal>
         );
 
-        const CardFace = ({ content, type }) => {
-            const pronounceText = useSpeech();
+        const DecksModal = ({ isOpen, onClose, onDeckSelect }) => (
+            <Modal isOpen={isOpen} onClose={onClose} title="Available Decks">
+                <div className="cards-grid">
+                    {AVAILABLE_DECKS.map((deck) => (
+                        <div 
+                            key={deck.id} 
+                            className="deck-card"
+                            onClick={() => onDeckSelect(deck)}
+                        >
+                            <div className="deck-image">{deck.image}</div>
+                            <div className="deck-title">{deck.name}</div>
+                            <div className="deck-count">{deck.cardCount} cards</div>
+                        </div>
+                    ))}
+                </div>
+            </Modal>
+        );
+
+        const CardFace = ({ content, type, emoji, onSpeak }) => {
             const [char, pinyin] = type === 'front' ? content.split('\n') : [null, null];
             const [english, thai] = type === 'back' ? content.split('\n') : [null, null];
 
             return (
-                <div className={`card-face ${type === 'back' ? 'card-back' : ''}`} onClick={() => pronounceText(char || english)}>
+                <div className={`card-face ${type === 'back' ? 'card-back' : ''}`}>
                     <div className="card-content">
                         {type === 'front' ? (
                             <>
-                                <div className="chinese-character">{char}</div>
-                                <div className="pinyin">{pinyin}</div>
+                                <div 
+                                    className="chinese-character cursor-pointer hover:opacity-80 transition-opacity"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onSpeak(char);
+                                    }}
+                                >
+                                    {char}
+                                </div>
+                                <div 
+                                    className="pinyin cursor-pointer hover:opacity-80 transition-opacity"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onSpeak(char);
+                                    }}
+                                >
+                                    {pinyin}
+                                </div>
                             </>
                         ) : (
                             <div className="translation-content">
-                                <div className="english-translation">{english}</div>
-                                <div className="thai-translation">{thai}</div>
+                                {emoji && <div className="emoji-display">{emoji}</div>}
+                                <div 
+                                    className="english-translation cursor-pointer hover:opacity-80 transition-opacity"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onSpeak(english);
+                                    }}
+                                >
+                                    {english}
+                                </div>
+                                <div 
+                                    className="thai-translation cursor-pointer hover:opacity-80 transition-opacity"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onSpeak(thai);
+                                    }}
+                                >
+                                    {thai}
+                                </div>
                             </div>
                         )}
                     </div>
@@ -384,16 +802,24 @@
             );
         };
 
-        const StudyScreen = ({ flashcards, onExit }) => {
+        const ParallaxBackground = () => (
+            <>
+                <div className="parallax-layer parallax-1"></div>
+                <div className="parallax-layer parallax-2"></div>
+            </>
+        );
+
+        const StudyScreen = ({ flashcards, onExit, onShowDecks }) => {
             const [currentIndex, setCurrentIndex] = useState(0);
             const [flipped, setFlipped] = useState(false);
             const [animating, setAnimating] = useState(false);
             const [collected, setCollected] = useState([]);
+            const [showLikedCards, setShowLikedCards] = useState(false);
             
             const touchStartX = useRef(0);
             const touchStartY = useRef(0);
             const swipeThreshold = 50;
-            const pronounceText = useSpeech();
+            const pronounceText = useAdvancedSpeech();
 
             const currentCard = flashcards[currentIndex];
             const isCollected = collected.includes(currentIndex);
@@ -418,7 +844,7 @@
             const handleFlip = useCallback(() => {
                 setFlipped(f => !f);
                 // Pronounce after flip
-                 setTimeout(() => {
+                setTimeout(() => {
                     const textToSpeak = !flipped ? currentCard.back : currentCard.front;
                     pronounceText(textToSpeak.split('\n')[0]);
                 }, 300);
@@ -426,6 +852,12 @@
             
             const toggleCollected = () => {
                 setCollected(c => isCollected ? c.filter(i => i !== currentIndex) : [...c, currentIndex]);
+            };
+
+            const handleCardClick = (cardIndex) => {
+                setShowLikedCards(false);
+                setCurrentIndex(cardIndex);
+                setFlipped(false);
             };
 
             useEffect(() => {
@@ -438,7 +870,7 @@
                 return () => window.removeEventListener('keydown', handleKeyDown);
             }, [handleNext, handlePrevious, handleFlip]);
             
-             useEffect(() => {
+            useEffect(() => {
                 // Auto-pronounce the front of the card when it changes
                 pronounceText(currentCard.front.split('\n')[0]);
             }, [currentIndex, currentCard, pronounceText]);
@@ -465,31 +897,62 @@
             };
 
             return (
-                <div className="mobile-center">
+                <div className="study-container">
                     <ParallaxBackground />
-                    <div className="w-full flex flex-col items-center justify-center relative">
-                        <div className="card-scene" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-                            <div className={`card-3d ${flipped ? 'flipped' : ''} ${animating ? 'animating' : ''}`}>
-                                <CardFace content={currentCard.front} type="front" />
-                                <CardFace content={`${currentCard.back.split('\n')[0]}\n${currentCard.back.split('\n')[1]}`} type="back" />
-                            </div>
-                        </div>
+                    
+                    <div className="top-controls">
+                        <button 
+                            onClick={() => setShowLikedCards(true)} 
+                            className="mobile-button text-white bg-white/20 rounded-full p-2 backdrop-blur-sm hover:bg-white/30 transition-colors"
+                        >
+                            <Icon name="heart" size={20} fill={isCollected ? 'currentColor' : 'none'} />
+                        </button>
+                        <button 
+                            onClick={() => window.open('https://bestling.net', '_blank')} 
+                            className="mobile-button text-white bg-white/20 rounded-full p-2 backdrop-blur-sm hover:bg-white/30 transition-colors"
+                        >
+                            <Icon name="externalLink" size={20} />
+                        </button>
+                        <button 
+                            onClick={onShowDecks} 
+                            className="mobile-button text-white bg-white/20 rounded-full p-2 backdrop-blur-sm hover:bg-white/30 transition-colors"
+                        >
+                            <Icon name="grid" size={20} />
+                        </button>
+                    </div>
 
-                        <div className="flex items-center justify-between w-full max-w-sm mt-6 text-white">
-                            <button onClick={handlePrevious} className="mobile-button"><Icon name="chevronLeft" size={32} /></button>
-                            <p className="text-lg font-medium">{currentIndex + 1} / {flashcards.length}</p>
-                            <button onClick={handleNext} className="mobile-button"><Icon name="chevronRight" size={32} /></button>
-                        </div>
-                        
-                        <div className="absolute top-0 right-0 p-4 flex items-center gap-4">
-                             <button onClick={toggleCollected} className="mobile-button text-white">
-                                <Icon name="heart" size={28} fill={isCollected ? 'currentColor' : 'none'} />
-                            </button>
-                            <button onClick={onExit} className="mobile-button text-white">
-                                <Icon name="bookOpen" size={28} />
-                            </button>
+                    <div className="card-scene" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+                        <div className={`card-3d ${flipped ? 'flipped' : ''} ${animating ? 'animating' : ''}`}>
+                            <CardFace content={currentCard.front} type="front" emoji={currentCard.emoji} onSpeak={pronounceText} />
+                            <CardFace content={`${currentCard.back.split('\n')[0]}\n${currentCard.back.split('\n')[1]}`} type="back" emoji={currentCard.emoji} onSpeak={pronounceText} />
                         </div>
                     </div>
+
+                    <div className="flex items-center justify-between w-full max-w-sm mt-6 text-white">
+                        <button onClick={handlePrevious} className="mobile-button">
+                            <Icon name="chevronLeft" size={32} />
+                        </button>
+                        <div className="flex items-center gap-4">
+                            <p className="text-lg font-medium">{currentIndex + 1} / {flashcards.length}</p>
+                            <button 
+                                onClick={toggleCollected} 
+                                className="mobile-button"
+                            >
+                                <Icon name="heart" size={24} fill={isCollected ? 'currentColor' : 'none'} />
+                            </button>
+                        </div>
+                        <button onClick={handleNext} className="mobile-button">
+                            <Icon name="chevronRight" size={32} />
+                        </button>
+                    </div>
+
+                    <LikedCardsModal 
+                        isOpen={showLikedCards}
+                        onClose={() => setShowLikedCards(false)}
+                        likedCards={collected}
+                        flashcards={flashcards}
+                        onCardClick={handleCardClick}
+                    />
                 </div>
             );
         };
@@ -513,10 +976,10 @@
             };
             
             const handleInteractionStart = (clientX) => {
-                 if(topic.trim()){
+                if(topic.trim()){
                     setIsDragging(true);
                     handleSlide(clientX);
-                 }
+                }
             };
 
             const handleInteractionMove = (clientX) => {
@@ -557,7 +1020,7 @@
 
             return (
                 <div className="mobile-center">
-                     <FloatingShapes/>
+                    <FloatingShapes/>
                     <div className="w-full max-w-md mx-auto text-center px-4">
                         <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">{t('flashcardsCode')}</h1>
                         <p className="text-white/80 mb-8">Unlock your Chinese fluency here.</p>
@@ -592,7 +1055,7 @@
         };
         
         const LoadingScreen = () => (
-             <div className="mobile-center text-center text-white">
+            <div className="mobile-center text-center text-white">
                 <div>
                     <h2 className="text-3xl font-bold mb-2">{t('generatingTitle')}</h2>
                     <p>{t('generatingSubtitle')}</p>
@@ -600,10 +1063,23 @@
             </div>
         );
 
-
         const FlashcardApp = () => {
             const [mode, setMode] = useState('create'); // 'create', 'loading', 'study'
             const [flashcards, setFlashcards] = useState([]);
+
+            // Load ResponsiveVoice for better pronunciation
+            useEffect(() => {
+                const script = document.createElement('script');
+                script.src = 'https://code.responsivevoice.org/responsivevoice.js?key=YOUR_KEY'; // Replace with actual key or use free version
+                script.async = true;
+                document.head.appendChild(script);
+                
+                return () => {
+                    if (document.head.contains(script)) {
+                        document.head.removeChild(script);
+                    }
+                };
+            }, []);
 
             const handleTopicSubmit = (code) => {
                 setMode('loading');
@@ -626,9 +1102,6 @@
                 setFlashcards([]);
             }
 
-            if (mode === 'loading') return <LoadingScreen />;
-            if (mode === 'study') return <StudyScreen flashcards={flashcards} onExit={handleExitStudy} />;
-            return <CreateScreen onTopicSubmit={handleTopicSubmit} />;
         };
 
         ReactDOM.render(<FlashcardApp />, document.getElementById('root'));
