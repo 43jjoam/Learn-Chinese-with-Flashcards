@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chinese-Thai Flashcard App</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        .watercolor-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+            touch-action: manipulation;
+        }
+
+        .card-scene {
+            width: min(320px, 90vw);
+            height: min(420px, 60vh);
+            margin: 20px auto;
+            perspective: 1000px;
+        }
+
+        .card-3d {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transition: transform 1.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+            cursor: pointer;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .card-3d.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-3d.animating {
+            transform: scale(0.95);
+            opacity: 0.8;
+            transition: all 0.2s ease;
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 20px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15), 0 10px 20px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            touch-action: manipulation;
+        }
+
+        .card-back {
+            transform: rotateY(180deg);
+        }
+
+        .card-content {
+            position: relative;
+            z-index: 2;
+            height: 100%;
+            padding: clamp(16px, 4vw, 24px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .chinese-character {
+            font-size: clamp(2rem, 6vw, 3.5rem);
+            font-weight: 300;
+            color: #1f2937;
+            margin-bottom: 8px;
+            line-height: 1;
+        }
+
+        .pinyin {
+            font-size: clamp(1rem, 3vw, 1.4rem);
+            color: #6b7280;
+            font-weight: 400;
+            margin-bottom: 16px;
+        }
+
+        .translation-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .emoji-display {
+            font-size: clamp(2rem, 5vw, 2.8rem);
+            margin-bottom: 8px;
+        }
+
+        .english-translation {
+            font-size: clamp(1rem, 3vw, 1.25rem);
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 4px;
+        }
+
+        .thai-translation {
+            font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+            color: #6b7280;
+            font-weight: 400;
+        }
+
+        .mobile-button {
+            min-height: 44px;
+            min-width: 44px;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            transition: all 0.2s ease;
+        }
+
+        .mobile-button:active {
+            transform: scale(0.95);
+            opacity: 0.8;
+        }
+
+        .floating-elements {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .floating-shape {
+            position: absolute;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: float 20s infinite linear;
+        }
+
+        .floating-shape:nth-child(1) {
+            width: 80px;
+            height: 80px;
+            top: 10%;
+            left: 10%;
+            animation-delay: 0s;
+            animation-duration: 25s;
+        }
+
+        .floating-shape:nth-child(2) {
+            width: 120px;
+            height: 120px;
+            top: 20%;
+            right: 15%;
+            animation-delay: -5s;
+            animation-duration: 30s;
+        }
+
+        .floating-shape:nth-child(3) {
+            width: 60px;
+            height: 60px;
+            bottom: 30%;
+            left: 20%;
+            animation-delay: -10s;
+            animation-duration: 20s;
+        }
+
+        .floating-shape:nth-child(4) {
+            width: 100px;
+            height: 100px;
+            bottom: 20%;
+            right: 25%;
+            animation-delay: -15s;
+            animation-duration: 35s;
+        }
+
+        .floating-shape:nth-child(5) {
+            width: 40px;
+            height: 40px;
+            top: 50%;
+            left: 5%;
+            animation-delay: -20s;
+            animation-duration: 15s;
+        }
+
+        .floating-shape:nth-child(6) {
+            width: 90px;
+            height: 90px;
+            top: 70%;
+            right: 10%;
+            animation-delay: -8s;
+            animation-duration: 28s;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0px) translateX(0px) rotate(0deg) scale(1);
+                opacity: 0.3;
+            }
+            25% {
+                transform: translateY(-20px) translateX(10px) rotate(90deg) scale(1.1);
+                opacity: 0.5;
+            }
+            50% {
+                transform: translateY(-40px) translateX(-5px) rotate(180deg) scale(0.9);
+                opacity: 0.3;
+            }
+            75% {
+                transform: translateY(-20px) translateX(-15px) rotate(270deg) scale(1.05);
+                opacity: 0.4;
+            }
+            100% {
+                transform: translateY(0px) translateX(0px) rotate(360deg) scale(1);
+                opacity: 0.3;
+            }
+        }
+
+        .animated-bg {
+            background: linear-gradient(-45deg, #667eea, #764ba2, #f093fb, #f5576c, #4facfe, #00f2fe);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        .parallax-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 120%;
+            height: 120%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .parallax-1 {
+            background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3), transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3), transparent 50%);
+            animation: parallaxMove1 30s ease-in-out infinite;
+        }
+
+        .parallax-2 {
+            background: radial-gradient(circle at 60% 20%, rgba(120, 219, 255, 0.2), transparent 50%),
+                        radial-gradient(circle at 40% 80%, rgba(255, 159, 119, 0.2), transparent 50%);
+            animation: parallaxMove2 25s ease-in-out infinite reverse;
+        }
+
+        @keyframes parallaxMove1 {
+            0%, 100% { transform: translateX(-10px) translateY(-5px) rotate(0deg); }
+            50% { transform: translateX(10px) translateY(5px) rotate(1deg); }
+        }
+
+        @keyframes parallaxMove2 {
+            0%, 100% { transform: translateX(5px) translateY(-10px) rotate(0deg); }
+            50% { transform: translateX(-5px) translateY(10px) rotate(-1deg); }
+        }
+
+        @media (max-width: 480px) {
+            .card-scene {
+                width: calc(100vw - 32px);
+                height: 55vh;
+                margin: 16px auto;
+            }
+            
+            .card-content {
+                padding: 16px;
+            }
+
+            .chinese-character {
+                font-size: 2.2rem;
+            }
+
+            .pinyin {
+                font-size: 1rem;
+            }
+
+            .emoji-display {
+                font-size: 2rem;
+            }
+
+            .english-translation {
+                font-size: 1rem;
+            }
+
+            .thai-translation {
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 320px) {
+            .card-scene {
+                width: calc(100vw - 24px);
+                height: 50vh;
+                margin: 12px auto;
+            }
+
+            .chinese-character {
+                font-size: 1.8rem;
+            }
+
+            .pinyin {
+                font-size: 0.9rem;
+            }
+
+            .emoji-display {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Lucide React icons simplified
+        const ChevronLeft = ({ size = 24 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="15,18 9,12 15,6"></polyline>
+            </svg>
+        );
+
+        const ChevronRight = ({ size = 24 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="9,18 15,12 9,6"></polyline>
+            </svg>
+        );
+
+        const Heart = ({ size = 24, fill = 'none' }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke="currentColor" strokeWidth="2">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+            </svg>
+        );
+
+        const BookOpen = ({ size = 24 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+            </svg>
+        );
+
+        const TRANSLATIONS = {
+            "en-US": {
+                "flashcardsCode": "Flashcards code",
+                "slideToUnlock": "slide to unlock",
+                "pasteCodePlaceholder": "paste or type your unique flashcards code here...",
+                "pasteCodePlaceholderThai": "วางหรือพิมพ์รหัสแฟลชการ์ดเฉพาะของคุณที่นี่...",
+                "generatingTitle": "Loading your flashcard set...",
+                "generatingSubtitle": "Please wait while we prepare your cards...",
+                "flipInstruction": "Use ↑↓ arrows or click to flip",
+                "createNewFlashcardsLink": "Enter new code",
+                "collection": "Collection",
+                "myCollection": "My Collection",
+                "collectedCards": "Collected Cards",
+                "backToStudy": "Back to Study",
+                "noCollectedCards": "No cards collected yet"
+            }
+        };
+
+        const CHINESE_VOCABULARY = [
+            { front: "爸爸\nbà ba", back: "dad\nพ่อ", emoji: "👨‍👧‍👦" },
+            { front: "别\nbié", back: "don't\nอย่า", emoji: "🚫" },
+            { front: "朋友\npéng yǒu", back: "friend\nเพื่อน", emoji: "👫" },
+            { front: "怕\npà", back: "to fear\nกลัว", emoji: "😨" },
+            { front: "妈妈\nmā ma", back: "mom\nแม่", emoji: "👩‍👧‍👦" },
+            { front: "买\nmǎi", back: "to buy\nซื้อ", emoji: "🛒" },
+            { front: "饭\nfàn", back: "meal\nข้าว", emoji: "🍽️" },
+            { front: "富\nfù", back: "rich\nรวย", emoji: "💰" },
+            { front: "奶奶\nnǎi nai", back: "grandmother\nยาย", emoji: "👵" },
+            { front: "你\nnǐ", back: "you\nคุณ", emoji: "👤" },
+            { front: "老\nlǎo", back: "old\nแก่", emoji: "🧓" },
+            { front: "来\nlái", back: "to come\nมา", emoji: "➡️" },
+            { front: "大\ndà", back: "big\nใหญ่", emoji: "📏" },
+            { front: "得\ndé", back: "to get\nได้รับ", emoji: "🏆" },
+            { front: "跳\ntiào", back: "to jump\nกระโดด", emoji: "🤸" },
+            { front: "调\ntiáo", back: "to adjust\nปรับ", emoji: "⚙️" },
+            { front: "猪\nzhū", back: "pig\nหมู", emoji: "🐷" },
+            { front: "住\nzhù", back: "to live\nอาศัย", emoji: "🏠" },
+            { front: "吃\nchī", back: "to eat\nกิน", emoji: "🍽️" },
+            { front: "出\nchū", back: "to go out\nออกไป", emoji: "🚪" },
+            { front: "高\ngāo", back: "high\nสูง", emoji: "📏" },
+            { front: "个\ngè", back: "measure word\nลักษณนาม", emoji: "📊" },
+            { front: "裤\nkù", back: "trousers\nกางเกง", emoji: "👖" },
+            { front: "可以\nkě yǐ", back: "can\nสามารถ", emoji: "✅" },
+            { front: "虎\nhǔ", back: "tiger\nเสือ", emoji: "🐅" },
+            { front: "好\nhǎo", back: "good\nดี", emoji: "👍" },
+            { front: "家\njiā", back: "home\nบ้าน", emoji: "🏡" },
+            { front: "就\njiù", back: "then\nแล้ว", emoji: "⏭️" },
+            { front: "小\nxiǎo", back: "small\nเล็ก", emoji: "🐭" },
+            { front: "喜欢\nxǐ huān", back: "to like\nชอบ", emoji: "❤️" },
+            { front: "起\nqǐ", back: "to rise\nลุกขึ้น", emoji: "⬆️" },
+            { front: "气\nqì", back: "air\nอากาศ", emoji: "💨" },
+            { front: "瘦\nshòu", back: "thin\nผอม", emoji: "🩲" },
+            { front: "上\nshàng", back: "up\nขึ้น", emoji: "⬆️" },
+            { front: "热\nrè", back: "hot\nร้อน", emoji: "🌡️" },
+            { front: "让\nràng", back: "to let\nให้", emoji: "🤲" },
+            { front: "菜\ncài", back: "dish\nจาน", emoji: "🥗" },
+            { front: "才\ncái", back: "just now\nเพิ่ง", emoji: "⏰" },
+            { front: "要\nyào", back: "to want\nอยาก", emoji: "💭" },
+            { front: "有\nyǒu", back: "to have\nมี", emoji: "📦" },
+            { front: "在\nzài", back: "at\nอยู่", emoji: "📍" },
+            { front: "走\nzǒu", back: "to walk\nเดิน", emoji: "🚶" },
+            { front: "三\nsān", back: "three\nสาม", emoji: "3️⃣" },
+            { front: "四\nsì", back: "four\nสี่", emoji: "4️⃣" },
+            { front: "问\nwèn", back: "to ask\nถาม", emoji: "❓" },
+            { front: "舞\nwǔ", back: "dance\nเต้นรำ", emoji: "💃" },
+            { front: "女\nnǚ", back: "woman\nผู้หญิง", emoji: "♀️" },
+            { front: "去\nqù", back: "to go\nไป", emoji: "➡️" },
+            { front: "矮\nǎi", back: "short\nเตี้ย", emoji: "📏" },
+            { front: "爱\nài", back: "to love\nรัก", emoji: "❤️" },
+            { front: "没\nméi", back: "not\nไม่มี", emoji: "❌" },
+            { front: "为什么\nwèi shén me", back: "why\nทำไม", emoji: "❓" },
+            { front: "打\ndǎ", back: "to hit\nตี", emoji: "👊" },
+            { front: "他\ntā", back: "he/she/it\nเขา", emoji: "👤" },
+            { front: "我\nwǒ", back: "I\nฉัน", emoji: "👆" },
+            { front: "摸\nmō", back: "to touch\nแตะ", emoji: "👋" },
+            { front: "喝\nhē", back: "to drink\nดื่ม", emoji: "🥤" },
+            { front: "了\nle", back: "particle\nคำลงท้าย", emoji: "✓" },
+            { front: "鸡\njī", back: "chicken\nไก่", emoji: "🐔" },
+            { front: "是\nshì", back: "to be/yes\nเป็น/ใช่", emoji: "✓" },
+            { front: "不\nbù", back: "no\nไม่", emoji: "❌" },
+            { front: "书\nshū", back: "book\nหนังสือ", emoji: "📖" },
+            { front: "睡\nshuì", back: "to sleep\nนอนหลับ", emoji: "😴" },
+            { front: "水\nshuǐ", back: "water\nน้ำ", emoji: "💧" },
+            { front: "到\ndào", back: "to arrive\nถึง", emoji: "📍" },
+            { front: "药\nyào", back: "medicine\nยา", emoji: "💊" },
+            { front: "肉\nròu", back: "meat\nเนื้อ", emoji: "🥩" },
+            { front: "游\nyóu", back: "to swim\nว่ายน้ำ", emoji: "🏊" },
+            { front: "球\nqiú", back: "ball\nลูกบอล", emoji: "⚽" },
+            { front: "牛\nniú", back: "cow\nวัว", emoji: "🐄" },
+            { front: "鞋\nxié", back: "shoe\nรองเท้า", emoji: "👟" },
+            { front: "谢\nxiè", back: "to thank\nขอบคุณ", emoji: "🙏" },
+            { front: "学\nxué", back: "to learn\nเรียน", emoji: "📚" },
+            { front: "觉\njiào", back: "sleep\nนอน", emoji: "😴" },
+            { front: "看\nkàn", back: "to look\nดู", emoji: "👁️" },
+            { front: "玩\nwán", back: "to play\nเล่น", emoji: "🎮" },
+            { front: "很\nhěn", back: "very\nมาก", emoji: "⭐" },
+            { front: "人\nrén", back: "people\nคน", emoji: "👥" },
+            { front: "心\nxīn", back: "heart\nหัวใจ", emoji: "💖" },
+            { front: "新\nxīn", back: "new\nใหม่", emoji: "✨" },
+            { front: "困\nkùn", back: "sleepy\nง่วง", emoji: "😪" },
+            { front: "春\nchūn", back: "spring\nฤดูใบไม้ผลิ", emoji: "🌸" },
+            { front: "云\nyún", back: "cloud\nเมฆ", emoji: "☁️" },
+            { front: "军\njūn", back: "army\nกองทัพ", emoji: "🪖" },
+            { front: "胖\npàng", back: "fat\nอ้วน", emoji: "🫃" },
+            { front: "唱\nchàng", back: "to sing\nร้องเพลง", emoji: "🎤" },
+            { front: "生\nshēng", back: "to live\nอยู่", emoji: "🌱" },
+            { front: "冷\nlěng", back: "cold\nหนาว", emoji: "🥶" },
+            { front: "病\nbìng", back: "illness\nป่วย", emoji: "🤒" },
+            { front: "明\nmíng", back: "bright\nสว่าง", emoji: "☀️" },
+            { front: "空\nkōng", back: "empty\nว่าง", emoji: "📦" },
+            { front: "泳\nyǒng", back: "to swim\nว่ายน้ำ", emoji: "🏊" },
+            { front: "笑\nxiào", back: "to laugh\nหัวเราะ", emoji: "😄" },
+            { front: "叫\njiào", back: "to call/scream\nเรียก/ตะโกน", emoji: "📢" },
+            { front: "夸\nkuā", back: "to praise\nชม", emoji: "👏" },
+            { front: "花\nhuā", back: "flower\nดอกไม้", emoji: "🌸" },
+            { front: "活\nhuó", back: "to live\nอยู่", emoji: "❤️" },
+            { front: "多\nduō", back: "many\nมาก", emoji: "👥" },
+            { front: "坏\nhuài", back: "bad\nเสีย", emoji: "😈" },
+            { front: "快\nkuài", back: "fast\nเร็ว", emoji: "⚡" },
+            { front: "穿\nchuān", back: "to wear\nใส่", emoji: "👕" },
+            { front: "全\nquán", back: "entire\nทั้งหมด", emoji: "💯" },
+            { front: "床\nchuáng", back: "bed\nเตียง", emoji: "🛏️" },
+            { front: "光\nguāng", back: "light\nแสง", emoji: "💡" },
+            { front: "想\nxiǎng", back: "to want\nคิด", emoji: "💭" },
+            { front: "亮\nliàng", back: "bright\nสว่าง", emoji: "💡" },
+            { front: "现\nxiàn", back: "to appear\nปรากฏ", emoji: "👁️" },
+            { front: "天\ntiān", back: "day\nวัน", emoji: "📅" },
+            { front: "熊\nxióng", back: "bear\nหมี", emoji: "🐻" },
+            { front: "穷\nqióng", back: "poor\nจน", emoji: "💸" },
+            { front: "元\nyuán", back: "unit of currency\nหน่วยเงิน", emoji: "💰" },
+            { front: "远\nyuǎn", back: "far\nไกล", emoji: "🏃" },
+            { front: "儿\nér", back: "son\nลูกชาย", emoji: "👦" },
+            { front: "二\nèr", back: "two\nสอง", emoji: "2️⃣" }
+        ];
+
+        const PINYIN_CARDS = [
+            { front: "ang", back: "ang\nFinal compound: 'ahng' sound\nเสียงสระผสม: 'อาง'", emoji: "🗣️" },
+            { front: "ing", back: "ing\nFinal compound: 'eeng' sound\nเสียงสระผสม: 'อิง'", emoji: "🗣️" },
+            { front: "en", back: "en\nFinal compound: 'uhn' sound\nเสียงสระผสม: 'เอิน'", emoji: "🗣️" },
+            { front: "ai", back: "ai\nFinal compound: 'eye' sound\nเสียงสระผสม: 'ไอ'", emoji: "🗣️" },
+            { front: "ao", back: "ao\nFinal compound: 'aow' sound\nเสียงสระผสม: 'เอา'", emoji: "🗣️" }
+        ];
+
+        const detectLanguage = (text) => {
+            const chinesePattern = /[\u4e00-\u9fff]/;
+            const thaiPattern = /[\u0e00-\u0e7f]/;
+            const pinyinPattern = /^[a-z]+$/i;
+            
+            if (chinesePattern.test(text)) return 'zh-CN';
+            if (thaiPattern.test(text)) return 'th-TH';
+            if (pinyinPattern.test(text) && text.length <= 6) return 'zh-CN';
+            return 'en-US';
+        };
+
+        const getUserLocation = () => {
+            return 'TH';
+        };
+
+        const locale = 'en-US';
+        const t = (key) => TRANSLATIONS[locale]?.[key] || key;
+
+        const FlashcardApp = () => {
+            const [mode, setMode] = useState('create');
+            const [topic, setTopic] = useState('');
+            const [flashcards, setFlashcards] = useState([]);
+            const [currentIndex, setCurrentIndex] = useState(0);
+            const [flipped, setFlipped] = useState(false);
+            const [animating, setAnimating] = useState(false);
+            const [slidePosition, setSlidePosition] = useState(0);
+            const [isDragging, setIsDragging] = useState(false);
+            const [collectedCards, setCollectedCards] = useState([]);
+            const [isCollected, setIsCollected] = useState(false);
+            const [userLocation, setUserLocation] = useState('US');
+            const [touchStartX, setTouchStartX] = useState(0);
+            const [touchStartY, setTouchStartY] = useState(0);
+            const [swipeThreshold] = useState(50);
+
+            useEffect(() => {
+                setUserLocation(getUserLocation());
+            }, []);
+
+            // Touch event handlers for mobile swipe gestures
+            const handleTouchStart = (e) => {
+                setTouchStartX(e.touches[0].clientX);
+                setTouchStartY(e.touches[0].clientY);
+            };
+
+            const handleTouchEnd = (e) => {
+                if (!touchStartX || !touchStartY) return;
+
+                const touchEndX = e.changedTouches[0].clientX;
+                const touchEndY = e.changedTouches[0].clientY;
+                const deltaX = touchStartX - touchEndX;
+                const deltaY = touchStartY - touchEndY;
+
+                // Determine if it's a horizontal or vertical swipe
+                if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                    // Horizontal swipe
+                    if (Math.abs(deltaX) > swipeThreshold) {
+                        if (deltaX > 0) {
+                            // Swipe left (next card)
+                            handleNext();
+                        } else {
+                            // Swipe right (previous card)
+                            handlePrevious();
+                        }
+                    }
+                } else {
+                    // Vertical swipe
+                    if (Math.abs(deltaY) > swipeThreshold) {
+                        // Flip card on vertical swipe
+                        handleFlip();
+                    }
+                }
+
+                setTouchStartX(0);
+                setTouchStartY(0);
+            };
+
+            const loadFlashcards = (code) => {
+                if (code === 'LearnChinesewithHelen11295') {
+                    setFlashcards(CHINESE_VOCABULARY);
+                } else if (code === 'pinyin' || code === 'py' || code === '拼音') {
+                    setFlashcards(PINYIN_CARDS);
+                } else {
+                    const mockFlashcards = [
+                        { front: "Hello", back: "สวัสดี\nA greeting", emoji: "👋" },
+                        { front: "Thank you", back: "ขอบคุณ\nExpression of gratitude", emoji: "🙏" },
+                        { front: "Water", back: "น้ำ\nClear liquid essential for life", emoji: "💧" }
+                    ];
+                    setFlashcards(mockFlashcards);
+                }
+                setCurrentIndex(0);
+                setFlipped(false);
+                setMode('study');
+            };
+
+            const handleSlide = (clientX) => {
+                const container = document.querySelector('.slide-container');
+                if (!container) return;
+                
+                const rect = container.getBoundingClientRect();
+                const maxSlide = rect.width - 120;
+                const newPosition = Math.max(0, Math.min(maxSlide, clientX - rect.left - 60));
+                
+                setSlidePosition(newPosition);
+                
+                if (newPosition >= maxSlide * 0.8) {
+                    if (topic.trim()) {
+                        setMode('loading');
+                        setTimeout(() => {
+                            loadFlashcards(topic.trim());
+                        }, 1500);
+                    }
+                }
+            };
+
+            const handleMouseDown = (e) => {
+                setIsDragging(true);
+                handleSlide(e.clientX);
+            };
+
+            const handleMouseMove = (e) => {
+                if (isDragging) {
+                    handleSlide(e.clientX);
+                }
+            };
+
+            const handleMouseUp = () => {
+                setIsDragging(false);
+                const container = document.querySelector('.slide-container');
+                if (container) {
+                    const rect = container.getBoundingClientRect();
+                    const maxSlide = rect.width - 120;
+                    if (slidePosition < maxSlide * 0.8) {
+                        setSlidePosition(0);
+                    }
+                }
+            };
+
+            useEffect(() => {
+                if (isDragging) {
+                    document.addEventListener('mousemove', handleMouseMove);
+                    document.addEventListener('mouseup', handleMouseUp);
+                    return () => {
+                        document.removeEventListener('mousemove', handleMouseMove);
+                        document.removeEventListener('mouseup', handleMouseUp);
+                    };
+                }
+            }, [isDragging, slidePosition]);
+
+            const pronounceText = (text, forceLanguage = null) => {
+                if ('speechSynthesis' in window && text && text.trim()) {
+                    window.speechSynthesis.cancel();
+                    
+                    const lines = text.split('\n');
+                    const textToPronounce = lines[0];
+                    
+                    const utterance = new SpeechSynthesisUtterance(textToPronounce);
+                    
+                    const detectedLang = forceLanguage || detectLanguage(textToPronounce);
+                    
+                    if (detectedLang === 'zh-CN') {
+                        utterance.rate = 0.6;
+                        utterance.pitch = 1.0;
+                        utterance.volume = 1.0;
+                        utterance.lang = 'zh-CN';
+                    } else if (detectedLang === 'th-TH') {
+                        utterance.rate = 0.7;
+                        utterance.pitch = 1.0;
+                        utterance.volume = 0.9;
+                        utterance.lang = 'th-TH';
+                    } else {
+                        utterance.rate = 0.8;
+                        utterance.pitch = 1.0;
+                        utterance.volume = 0.9;
+                        utterance.lang = 'en-US';
+                    }
+                    
+                    window.speechSynthesis.speak(utterance);
+                }
+            };
+
+            const handleFlip = () => {
+                setFlipped(!flipped);
+            };
+
+            const handleNext = () => {
+                if (currentIndex < flashcards.length - 1 && !animating) {
+                    setAnimating(true);
+                    setTimeout(() => {
+                        setFlipped(false);
+                        setCurrentIndex(currentIndex + 1);
+                        setIsCollected(false);
+                        setTimeout(() => setAnimating(false), 50);
+                    }, 150);
+                }
+            };
+
+            const handlePrevious = () => {
+                if (currentIndex > 0 && !animating) {
+                    setAnimating(true);
+                    setTimeout(() => {
+                        setFlipped(false);
+                        setCurrentIndex(currentIndex - 1);
+                        setIsCollected(false);
+                        setTimeout(() => setAnimating(false), 50);
+                    }, 150);
+                }
+            };
+
+            const handleCollect = () => {
+                const currentCard = flashcards[currentIndex];
+                if (currentCard && !isCollected) {
+                    setCollectedCards(prev => [...prev, { ...currentCard, id: Date.now() }]);
+                    setIsCollected(true);
+                }
+            };
+
+            const handleKeyPress = (e) => {
+                if (mode === 'study') {
+                    if (e.key === 'ArrowLeft') handlePrevious();
+                    if (e.key === 'ArrowRight') handleNext();
+                    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        handleFlip();
+                    }
+                }
+            };
+
+            useEffect(() => {
+                window.addEventListener('keydown', handleKeyPress);
+                return () => window.removeEventListener('keydown', handleKeyPress);
+            }, [mode, currentIndex, flashcards.length, flipped, animating]);
+
+            if (mode === 'create') {
+                return (
+                    <div className="min-h-screen flex items-center justify-center animated-bg p-8 relative">
+                        <div className="floating-elements">
+                            <div className="floating-shape"></div>
+                            <div className="floating-shape"></div>
+                            <div className="floating-shape"></div>
+                            <div className="floating-shape"></div>
+                            <div className="floating-shape"></div>
+                            <div className="floating-shape"></div>
+                        </div>
+                        <div className="parallax-layer parallax-1"></div>
+                        <div className="parallax-layer parallax-2"></div>
+                        
+                        <div className="w-full max-w-lg relative z-10">
+                            <div className="watercolor-card p-8 mb-8">
+                                <textarea
+                                    value={topic}
+                                    onChange={(e) => setTopic(e.target.value)}
+                                    placeholder={userLocation === 'TH' ? t('pasteCodePlaceholderThai') : t('pasteCodePlaceholder')}
+                                    className="w-full h-40 text-gray-900 placeholder-gray-400 resize-none focus:outline-none bg-transparent font-light leading-relaxed text-lg"
+                                />
+                            </div>
+                            
+                            <div className="slide-container relative bg-white/20 backdrop-blur-sm rounded-full p-2 border border-white/30" style={{width: '100%', height: '64px', position: 'relative', overflow: 'hidden'}}>
+                                <div 
+                                    className="slide-button absolute top-2 left-2 w-28 h-12 bg-white rounded-full flex items-center justify-center cursor-grab active:cursor-grabbing shadow-lg hover:shadow-xl mobile-button"
+                                    style={{ transform: `translateX(${slidePosition}px)`, zIndex: 10, userSelect: 'none', transition: 'transform 0.2s ease' }}
+                                    onMouseDown={handleMouseDown}
+                                    onTouchStart={(e) => {
+                                        setIsDragging(true);
+                                        const touch = e.touches[0];
+                                        handleSlide(touch.clientX);
+                                    }}
+                                    onTouchMove={(e) => {
+                                        if (isDragging) {
+                                            const touch = e.touches[0];
+                                            handleSlide(touch.clientX);
+                                        }
+                                    }}
+                                    onTouchEnd={() => {
+                                        setIsDragging(false);
+                                        const container = document.querySelector('.slide-container');
+                                        if (container) {
+                                            const rect = container.getBoundingClientRect();
+                                            const maxSlide = rect.width - 120;
+                                            if (slidePosition < maxSlide * 0.8) {
+                                                setSlidePosition(0);
+                                            }
+                                        }
+                                    }}
+                                >
+                                    <span className="text-gray-700 font-medium text-sm">{t('flashcardsCode')}</span>
+                                </div>
+                                <div className="h-12 flex items-center justify-end pr-6">
+                                    <span className="text-white font-light text-sm">{t('slideToUnlock')}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (mode === 'loading') {
+                return (
+                    <div className="min-h-screen flex items-center justify-center animated-bg relative">
+                        <div className="floating-elements">
+                            <div className="floating-shape"></div>
+                            <div className="floating-shape"></div>
+                            <div className="floating-shape"></div>
+                            <div className="floating-shape"></div>
+                            <div className="floating-shape"></div>
+                            <div className="floating-shape"></div>
+                        </div>
+                        <div className="parallax-layer parallax-1"></div>
+                        <div className="parallax-layer parallax-2"></div>
+                        
+                        <div className="text-center relative z-10">
+                            <h1 className="text-white text-4xl font-light mb-4">{t('generatingTitle')}</h1>
+                            <p className="text-white/80 mb-8 font-light">{t('generatingSubtitle')}</p>
+                            <div className="flex justify-center">
+                                <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (mode === 'collection') {
+                return (
+                    <div className="min-h-screen animated-bg p-8 relative">
+                        <div className="floating-elements">
+                            <div className="floating-shape"></div>
+                            <div className="floating-shape"></div>
+                            <div className="floating-shape"></div>
+                            <div className="floating-shape"></div>
+                            <div className="floating-shape"></div>
+                            <div className="floating-shape"></div>
+                        </div>
+                        <div className="parallax-layer parallax-1"></div>
+                        <div className="parallax-layer parallax-2"></div>
+                        
+                        <div className="max-w-4xl mx-auto relative z-10">
+                            <div className="flex items-center justify-between mb-6 px-2">
+                                <h1 className="text-white text-2xl sm:text-4xl font-light">{t('myCollection')}</h1>
+                                <button
+                                    onClick={() => setMode('study')}
+                                    className="px-4 py-2 bg-white/20 text-white rounded-full hover:bg-white/30 transition-all backdrop-blur-sm border border-white/20 mobile-button text-sm"
+                                >
+                                    {t('backToStudy')}
+                                </button>
+                            </div>
+                            
+                            {collectedCards.length === 0 ? (
+                                <div className="text-center text-white/70 text-xl font-light mt-20">
+                                    {t('noCollectedCards')}
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 px-2">
+                                    {collectedCards.map((card, index) => (
+                                        <div key={card.id} className="card-scene" style={{margin: '10px auto'}}>
+                                            <div className="card-3d">
+                                                <div className="card-face card-front">
+                                                    <div className="card-content">
+                                                        <div className="text-center">
+                                                            {card.front.split('\n').map((line, lineIndex) => (
+                                                                <div key={lineIndex} className={lineIndex === 0 ? "chinese-character" : "pinyin"}>
+                                                                    {line}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            }
+
+            if (mode === 'study') {
+                const currentCard = flashcards[currentIndex];
+                
+                if (!currentCard) {
+                    return (
+                        <div className="min-h-screen flex items-center justify-center animated-bg relative">
+                            <div className="floating-elements">
+                                <div className="floating-shape"></div>
+                                <div className="floating-shape"></div>
+                                <div className="floating-shape"></div>
+                                <div className="floating-shape"></div>
+                                <div className="floating-shape"></div>
+                                <div className="floating-shape"></div>
+                            </div>
+                            <div className="parallax-layer parallax-1"></div>
+                            <div className="parallax-layer parallax-2"></div>
+                            
+                            <div className="text-center relative z-10">
+                                <h1 className="text-white text-4xl font-medium mb-4">No flashcards available</h1>
+                                <button
+                                    onClick={() => {
+                                        setMode('create');
+                                        setTopic('');
+                                        setFlashcards([]);
+                                        setCurrentIndex(0);
+                                        setFlipped(false);
+                                    }}
+                                    className="text-white/70 hover:text-white transition-colors underline"
+                                >
+                                    {t('createNewFlashcardsLink')}
+                                </button>
+                            </div>
+                        </div>
+                    );
+                }
+                
+                return (
+                    <div className="min-h-screen animated-bg p-8 relative">
+                        <div className="floating-elements">
+                            <div className="floating-shape"></div>
+                            <div className="floating-shape"></div>
+                            <div className="floating-shape"></div>
+                            <div className="floating-shape"></div>
+                            <div className="floating-shape"></div>
+                            <div className="floating-shape"></div>
+                        </div>
+                        <div className="parallax-layer parallax-1"></div>
+                        <div className="parallax-layer parallax-2"></div>
+                        
+                        <div className="absolute top-4 right-4 z-10">
+                            <button
+                                onClick={() => setMode('collection')}
+                                className="flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-full hover:bg-white/30 transition-all backdrop-blur-sm border border-white/20 mobile-button text-sm"
+                            >
+                                <BookOpen size={18} />
+                                <span className="hidden sm:inline">{t('collection')}</span> ({collectedCards.length})
+                            </button>
+                        </div>
+
+                        <div className="flex items-center justify-center min-h-screen">
+                            <div className="w-full max-w-2xl relative z-10">
+                                <div className="card-scene">
+                                    <div 
+                                        className={`card-3d ${flipped ? 'flipped' : ''} ${animating ? 'animating' : ''}`} 
+                                        onClick={handleFlip}
+                                        onTouchStart={handleTouchStart}
+                                        onTouchEnd={handleTouchEnd}
+                                    >
+                                        <div 
+                                            className="card-face card-front"
+                                            onMouseEnter={() => {
+                                                const lines = currentCard.front.split('\n');
+                                                if (lines.length >= 2) {
+                                                    const chineseChar = lines[0];
+                                                    pronounceText(chineseChar, 'zh-CN');
+                                                }
+                                            }}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                const lines = currentCard.front.split('\n');
+                                                if (lines.length >= 2) {
+                                                    const chineseChar = lines[0];
+                                                    pronounceText(chineseChar, 'zh-CN');
+                                                }
+                                                handleFlip();
+                                            }}
+                                        >
+                                            <div className="card-content">
+                                                <div className="text-center">
+                                                    {currentCard.front.split('\n').map((line, index) => (
+                                                        <div key={index} className={index === 0 ? "chinese-character" : "pinyin"}>
+                                                            {line}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div 
+                                            className="card-face card-back"
+                                            onMouseEnter={() => {
+                                                const lines = currentCard.back.split('\n');
+                                                if (lines.length >= 1) {
+                                                    pronounceText(lines[0], 'en-US');
+                                                }
+                                            }}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                const lines = currentCard.back.split('\n');
+                                                if (lines.length >= 1) {
+                                                    pronounceText(lines[0], 'en-US');
+                                                }
+                                                handleFlip();
+                                            }}
+                                        >
+                                            <div className="card-content">
+                                                <div className="translation-content">
+                                                    <div className="emoji-display">{currentCard.emoji}</div>
+                                                    {currentCard.back.split('\n').map((line, index) => {
+                                                        if (index === 0) {
+                                                            return <div key={index} className="english-translation">{line}</div>;
+                                                        } else if (index === 1) {
+                                                            return <div key={index} className="thai-translation">{line}</div>;
+                                                        }
+                                                        return null;
+                                                    })}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center justify-center mt-6 gap-3">
+                                    <button
+                                        onClick={handlePrevious}
+                                        disabled={currentIndex === 0}
+                                        className={`p-3 rounded-full transition-all backdrop-blur-sm mobile-button ${
+                                            currentIndex === 0 
+                                                ? 'bg-white/10 text-white/50 cursor-not-allowed' 
+                                                : 'bg-white/20 text-white hover:bg-white/30 active:scale-95'
+                                        }`}
+                                    >
+                                        <ChevronLeft size={20} />
+                                    </button>
+                                    
+                                    <span className="mx-4 text-white text-lg font-light min-w-[80px] text-center">
+                                        {currentIndex + 1} / {flashcards.length}
+                                    </span>
+
+                                    <button
+                                        onClick={handleCollect}
+                                        disabled={isCollected}
+                                        className={`p-3 rounded-full transition-all backdrop-blur-sm mobile-button ${
+                                            isCollected
+                                                ? 'bg-red-500/50 text-white cursor-not-allowed' 
+                                                : 'bg-white/20 text-white hover:bg-white/30 hover:bg-red-500/30 active:scale-95'
+                                        }`}
+                                        title={isCollected ? 'Already collected' : 'Add to collection'}
+                                    >
+                                        <Heart size={20} fill={isCollected ? 'currentColor' : 'none'} />
+                                    </button>
+                                    
+                                    <button
+                                        onClick={handleNext}
+                                        disabled={currentIndex === flashcards.length - 1}
+                                        className={`p-3 rounded-full transition-all backdrop-blur-sm mobile-button ${
+                                            currentIndex === flashcards.length - 1 
+                                                ? 'bg-white/10 text-white/50 cursor-not-allowed' 
+                                                : 'bg-white/20 text-white hover:bg-white/30 active:scale-95'
+                                        }`}
+                                    >
+                                        <ChevronRight size={20} />
+                                    </button>
+                                </div>
+                                
+                                <div className="text-center mt-6 px-4">
+                                    <p className="text-white/70 text-sm mb-4">
+                                        <span className="hidden sm:inline">{t('flipInstruction')}</span>
+                                        <span className="sm:hidden">Tap to flip • Swipe to navigate</span>
+                                    </p>
+                                    <button
+                                        onClick={() => {
+                                            setMode('create');
+                                            setTopic('');
+                                            setFlashcards([]);
+                                        }}
+                                        className="text-white/70 hover:text-white transition-colors underline mobile-button"
+                                    >
+                                        {t('createNewFlashcardsLink')}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return null;
+        };
+
+        // Render the app
+        ReactDOM.render(<FlashcardApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>
